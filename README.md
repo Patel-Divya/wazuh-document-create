@@ -14,17 +14,22 @@ Add EventID filtering for noisy logs:
 
 Note:
 You will se somthing like:
-<localfile> <location>Security</location> <log_format>eventchannel</log_format> <query>Event/System[EventID != 5145 and EventID != 5156 and EventID != 5447 and EventID != 4656 and EventID != 4658 and EventID != 4663 and EventID != 4660 and EventID != 4670 and EventID != 4690 and EventID != 4703 and EventID != 4907 and EventID != 5152 and EventID != 5157]</query> </localfile>
+<localfile> 
+  <location>Security</location> 
+  <log_format>eventchannel</log_format> 
+  <query>
+    Event/System[EventID != 5145 and EventID != 5156 and EventID != 5447 and EventID != 4656 and EventID != 4658 and EventID != 4663 and EventID != 4660 and EventID != 4670 and EventID != 4690 and EventID != 4703 and EventID != 4907 and EventID != 5152 and EventID != 5157]
+  </query> 
+</localfile>
 
 Add to exclude event IDs:
 EventID != 4769
 
----
 
 Restart agent:
-net stop wazuh
-net start wazuh
+- net stop wazuh
+- net start wazuh
 
 Filter verify:
 C:\Program Files (x86)\ossec-agent\logs\ossec.log
- (does not show all time for me, but it works)
+(does not show all time for me, but it works)
