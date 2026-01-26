@@ -84,7 +84,27 @@ paste:
 ``` 
 Zabbix trigger: {"severity":"Critical","host":"windows-poc","trigger":"CPU High","status":"PROBLEM"}
 ```
+You should see:
+```
+**Phase 1: Completed pre-decoding.
+        full event: 'Zabbix trigger: {"severity":"Critical","host":"windows-poc","trigger":"CPU High","status":"PROBLEM"}'
 
+**Phase 2: Completed decoding.
+        name: 'zabbix-trigger'
+        host: 'windows-poc'
+        severity: 'Critical'
+        status: 'PROBLEM'
+        trigger: 'CPU High'
+
+**Phase 3: Completed filtering (rules).
+        id: '120504'
+        level: '13'
+        description: 'Zabbix Trigger (Critical)'
+        groups: '['zabbix', 'trigger']'
+        firedtimes: '1'
+        mail: 'True'
+**Alert to be generated.
+```
 
 # Test from Windows
 PowerShell UDP test:
