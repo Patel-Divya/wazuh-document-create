@@ -1,4 +1,5 @@
-# ossec conf:
+# ossec.conf
+```
 <ossec_config>
   <remote>
     <connection>syslog</connection>
@@ -6,18 +7,20 @@
     <port>514</port>
   </remote>
 </ossec_config>
+```
 
-
-# Decoder:
+# Decoder
+```
 <decoders>
   <decoder name="zabbix-trigger">
     <prematch>Zabbix trigger: </prematch>
     <plugin_decoder offset="after_prematch">JSON_Decoder</plugin_decoder>
   </decoder>
 </decoders>
+```
 
-
-# Rule:
+# Rule
+```
 <group name="zabbix,trigger">
   <rule id="100500" level="3">
     <if_matched_sid>zabbix-trigger</if_matched_sid>
@@ -33,15 +36,22 @@
     <level>13</level>
   </rule>
 </group>
+```
+
+# validate rule & decoder
+goto: 
+``` 
+/var/ossec/bin/wazuh-logtest
+```
+paste: 
+``` 
+Zabbix trigger: {"severity":"Critical","host":"windows-poc","trigger":"CPU High","status":"PROBLEM"}
+```
 
 
-# validate rule & decoder:
-goto: /var/ossec/bin/wazuh-logtest
-paste: Zabbix trigger: {"severity":"Critical","host":"windows-poc","trigger":"CPU High","status":"PROBLEM"}
-
-
-# Test from Windows:
-# PowerShell UDP test:
+# Test from Windows
+PowerShell UDP test:
+```
 $udpClient = New-Object System.Net.Sockets.UdpClient
 $udpClient.Connect("127.0.0.1",514)
 
@@ -50,8 +60,10 @@ $bytes = [System.Text.Encoding]::UTF8.GetBytes($msg)
 
 $udpClient.Send($bytes,$bytes.Length)
 $udpClient.Close()
-
+```
 
 # Validation:
+```
 docker exec -it wazuh-manager cat /var/ossec/logs/alerts/alerts.json | tail -20
+```
 
