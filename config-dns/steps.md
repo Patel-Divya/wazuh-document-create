@@ -145,3 +145,22 @@ nslookup 192.168.145.3
 nslookup 192.168.145.4
 ping server1.lab.local
 ```
+
+## MX Record
+- MX = Mail Exchange
+- It tells other mail servers which server handles email for a domain.
+- Maps a domain name → mail server hostname (not IP)
+- Usually has a priority number to indicate which mail server is preferred if multiple exist
+eg.
+```
+lab.local.   IN   MX  10   mail.lab.local.
+```
+- lab.local. → domain that receives email
+- 10 → priority (lower = higher priority)
+- mail.lab.local. → hostname of the mail server
+- Mail queries go through MX → resolves to mail.lab.local → IP
+eg.
+```
+mail    IN  A   192.168.145.5
+@       IN  MX  10  mail.lab.local.
+```
