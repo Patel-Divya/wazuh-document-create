@@ -1,9 +1,11 @@
-insert:
+## got nothing on dashboard (this one log)
+
+## insert:
 ```
 curl -k -u admin:SecretPassword -H "Content-Type: application/json" -X PUT "https://127.0.0.1:9200/wazuh-alerts-4.x-2026.02.05/_doc/anita-54321?refresh=true" -d "{\"@timestamp\":\"2026-02-05T11:00:00Z\",\"document_type\":\"combined\",\"user\":\"anita\",\"session\":54321,\"status\":\"active\",\"login_time\":\"2026-02-05T11:00:00Z\"}"
 ```
 
-search:
+## search:
 ```
 url -k -u admin:SecretPassword -H "Content-Type: application/json" -X GET "https://127.0.0.1:9200/wazuh-alerts-4.x-*/_search?pretty" -d "{\"query\":{\"term\":{\"_id\":\"user-54321\"}}}"
 ```
