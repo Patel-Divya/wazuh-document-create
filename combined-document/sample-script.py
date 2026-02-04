@@ -12,7 +12,7 @@ app = Flask(__name__)
 
 # OpenSearch Config (Wazuh)
 OPENSEARCH_URL = "https://localhost:9200"
-INDEX = "vpn-events"
+INDEX = "vpn-sessions"
 
 urllib3.disable_warnings()
 
@@ -29,6 +29,7 @@ os_session.proxies = {
     "https": None
 }
 
+# Fixed Users for POC
 USERS = {
     "alice":   {"status": "disconnected", "session_id": None},
     "bob":     {"status": "disconnected", "session_id": None},
@@ -37,9 +38,79 @@ USERS = {
     "eve":     {"status": "disconnected", "session_id": None}
 }
 
+# Helpers
 def now():
     return datetime.datetime.utcnow().isoformat() + "Z"
 
+# Bandwidth Accounting (MOCK)
+def get_bandwidth_usage(ip, start_time, end_time=None):
+    """
+    Placeholder for future Elastic / NMS query.
+    For now returns mock data.
+    """
+    # TODO: Replace with real query
+    return {
+        "bytes_in": 512 * 1024 * 1024,   # 512 MB
+        "bytes_out": 512 * 1024 * 1024,  # 512 MB
+    }
+
+def bytes_to_gb(bytes_value):
+    return round(bytes_value / (1024 ** 3), 3)
+
+def update_active_sessions():
+    for user, info in USERS.items():
+        if info["status"] != "active":
+            continue
+
+        session_id = info["session_id"]
+        now_time = now()
+
+        # ---- MOCK BANDWIDTH DELTA ----
+        usage = get_bandwidth_usage(
+            ip="mock-ip",
+            start_time="mock-last",
+            end_time=now_time
+        )
+
+        delta_in = usage["bytes_in"]
+        delta_out = usage["bytes_out"]
+
+        # Update ES (incremental)
+        update_doc = {
+            "script": {
+                "source": """
+                    ctx._source.bytes_in += params.in;
+                    ctx._source.bytes_out += params.out;
+                    ctx._source.bandwidth_gb =
+                        (ctx._source.bytes_in + ctx._source.bytes_out) / 1024 / 1024 / 1024;
+                    ctx._source.last_accounted_at = params.now;
+                """,
+                "lang": "painless",
+                "params": {
+                    "in": delta_in,
+                    "out": delta_out,
+                    "now": now_time
+                }
+            }
+        }
+
+        resp = os_session.post(
+            f"{OPENSEARCH_URL}/{INDEX}/_update/{user}-{session_id}",
+            json=update_doc,
+            timeout=10
+        )
+
+        print(f"[ACCOUNTING] {user} +{bytes_to_gb(delta_in + delta_out)} GB | HTTP {resp.status_code}")
+
+def accounting_worker():
+    while True:
+        try:
+            time.sleep(120)  # 2 minutes
+            update_active_sessions()
+        except Exception as e:
+            print("[ACCOUNTING ERROR]", e)
+
+# Routes
 @app.route("/")
 def dashboard():
     return render_template("dashboard.html", users=USERS)
@@ -54,18 +125,24 @@ def connect(user):
 
     session_id = str(uuid.uuid4())[:8]
 
-    event = {
+    doc = {
         "@timestamp": now(),
-        "event_type": "vpn_connect",
         "user": user,
         "session_id": session_id,
-        "source": "vpn-poc",
-        "action": "connect"
+        # "private_ip": private_ip,
+        "status": "active",
+        "login_time": now(),
+        "logout_time": None
+
+         # Bandwidth
+        # "bytes_in": 0,
+        # "bytes_out": 0,
+        # "bandwidth_gb": 0.0,
     }
 
-    resp = os_session.post(
-        f"{OPENSEARCH_URL}/vpn-events/_doc",
-        json=event,
+    resp = os_session.put(
+        f"{OPENSEARCH_URL}/{INDEX}/_doc/{user}-{session_id}?refresh=true",
+        json=doc,
         timeout=10
     )
 
@@ -85,18 +162,16 @@ def disconnect(user):
 
     session_id = USERS[user]["session_id"]
 
-    event = {
-        "@timestamp": now(),
-        "event_type": "vpn_disconnect",
-        "user": user,
-        "session_id": session_id,
-        "source": "vpn-poc",
-        "action": "disconnect"
+    update_doc = {
+        "doc": {
+            "status": "closed",
+            "logout_time": now()
+        }
     }
 
     resp = os_session.post(
-        f"{OPENSEARCH_URL}/vpn-events/_doc",
-        json=event,
+        f"{OPENSEARCH_URL}/{INDEX}/_update/{user}-{session_id}?refresh=true",
+        json=update_doc,
         timeout=10
     )
 
@@ -106,5 +181,10 @@ def disconnect(user):
     print(f"[LOGOUT] {user} | HTTP {resp.status_code}")
     return jsonify({"message": "Disconnected", "user": user})
 
+# ----------------------------
+# Main
+# ----------------------------
 if __name__ == "__main__":
+    t = threading.Thread(target=accounting_worker, daemon=True)
+    t.start()
     app.run(host="0.0.0.0", port=5000, debug=True)
