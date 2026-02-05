@@ -43,3 +43,9 @@ url -k -u admin:SecretPassword -H "Content-Type: application/json" -X GET "https
   }
 }
 ```
+
+
+You can do existing log update by:
+```
+curl -k -u admin:SecretPassword -H "Content-Type: application/json" -X POST "https://127.0.0.1:9200/wazuh-alerts-4.x-2026.02.05/_update/NMzkLpwBNDuTFyZyJYeq?refresh=true" -d "{\"doc\":{\"data\":{\"extra_data\":\"anything-you-want\",\"status\":\"offline\"}}}"
+```
